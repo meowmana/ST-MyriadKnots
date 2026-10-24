@@ -3859,21 +3859,34 @@ function yi(e, { trailingCommasOnly: t = !1, requireOperations: n = !0 } = {}) {
 		let t = r;
 		for (; /\s/u.test(e[r] ?? "");) r += 1;
 		return i += e.slice(t, r), r - t;
-	}, l = (e) => e === "{" || e === "[" || e === "\"" || e === "-" || /[0-9]/u.test(e ?? "") || e === "t" || e === "f" || e === "n", u = ({ value: t = !1 } = {}) => {
+	}, l = (e) => e === "{" || e === "[" || e === "\"" || e === "-" || /[0-9]/u.test(e ?? "") || e === "t" || e === "f" || e === "n", u = (e) => l(e) || mi.test(e ?? ""), d = (t) => {
+		let n = t + 1;
+		for (; /\s/u.test(e[n] ?? "");) n += 1;
+		if (n === e.length || e[n] === "}" || e[n] === "]") return !0;
+		if (e[n] === ",") {
+			let t = n + 1;
+			for (; /\s/u.test(e[t] ?? "");) t += 1;
+			return t === e.length || e[t] === "}" || e[t] === "]" || u(e[t]);
+		}
+		return n > t + 1 && u(e[n]);
+	}, f = (t) => {
+		let n = t + 1;
+		for (; /\s/u.test(e[n] ?? "");) n += 1;
+		if (e[n] !== ",") return !1;
+		for (n += 1; /\s/u.test(e[n] ?? "");) n += 1;
+		return h(n)?.colon === !0;
+	}, p = ({ value: t = !1 } = {}) => {
 		if (e[r] !== "\"") return null;
 		let n = "\"";
 		for (r += 1; r < e.length;) {
 			let a = e[r];
 			if (a === "\"") {
 				if (t) {
-					let t = r + 1;
-					for (; /\s/u.test(e[t] ?? "");) t += 1;
-					let i = t > r + 1 && (l(e[t]) || mi.test(e[t] ?? ""));
-					if (!(t === e.length || [
-						",",
-						"}",
-						"]"
-					].includes(e[t]) || i)) {
+					if (e[r + 1] === "\"" && f(r + 1)) {
+						s("escape-string-quote", r, "\\"), n += "\\\"", r += 1;
+						continue;
+					}
+					if (!d(r)) {
 						let t = r + 1;
 						for (; t < e.length;) {
 							if (e[t] === "\\") {
@@ -3920,13 +3933,13 @@ function yi(e, { trailingCommasOnly: t = !1, requireOperations: n = !0 } = {}) {
 			n += a, r += 1;
 		}
 		return null;
-	}, d = () => {
+	}, m = () => {
 		if (!mi.test(e[r] ?? "")) return null;
 		let t = r;
 		for (r += 1; hi.test(e[r] ?? "");) r += 1;
 		let n = e.slice(t, r);
 		return e[r] === "\"" ? (s("insert-key-opening-quote", t, "\""), i += `"${n}`, r += 1, i += "\"", { key: n }) : (s("quote-bare-key", t, "\"\""), i += `"${n}"`, { key: n });
-	}, f = (t) => {
+	}, h = (t) => {
 		let n = t;
 		if (e[n] === "\"") {
 			n += 1;
@@ -3975,17 +3988,17 @@ function yi(e, { trailingCommasOnly: t = !1, requireOperations: n = !0 } = {}) {
 			colon: e[n] === ":",
 			valueAt: n
 		};
-	}, p = () => {
+	}, g = () => {
 		if (e[r] === "\"") {
-			let e = u();
+			let e = p();
 			return e ? { key: e.decoded } : null;
 		}
-		return d();
-	}, m = () => {
+		return m();
+	}, _ = () => {
 		let t = e[r];
-		if (t === "{") return h();
-		if (t === "[") return g();
-		if (t === "\"") return u({ value: !0 });
+		if (t === "{") return v();
+		if (t === "[") return y();
+		if (t === "\"") return p({ value: !0 });
 		for (let t of [
 			"true",
 			"false",
@@ -3995,11 +4008,11 @@ function yi(e, { trailingCommasOnly: t = !1, requireOperations: n = !0 } = {}) {
 		let n = gi.exec(e);
 		return n ? (i += n[0], r = gi.lastIndex, { kind: "number" }) : null;
 	};
-	function h() {
+	function v() {
 		let t = /* @__PURE__ */ new Set();
 		if (i += "{", r += 1, c(), e[r] === "}") return i += "}", r += 1, { kind: "object" };
 		for (; r < e.length;) {
-			let n = p();
+			let n = g();
 			if (!n) return null;
 			t.has(n.key) && (o = !0), t.add(n.key);
 			let a = c();
@@ -4007,7 +4020,7 @@ function yi(e, { trailingCommasOnly: t = !1, requireOperations: n = !0 } = {}) {
 			else if (l(e[r]) && (e[r] !== "\"" || a > 0)) s("insert-colon", r, ":"), i += ":";
 			else return null;
 			c();
-			let u = m();
+			let u = _();
 			if (!u) return null;
 			let d = c();
 			if (e[r] === "}") return i += "}", r += 1, { kind: "object" };
@@ -4020,16 +4033,16 @@ function yi(e, { trailingCommasOnly: t = !1, requireOperations: n = !0 } = {}) {
 				i += `,${e.slice(n, r)}`;
 				continue;
 			}
-			let h = f(r), g = h && (h.colon || l(e[h.valueAt]));
-			if (!(h && g && (u.kind !== "string" || h.kind !== "quoted") && (d > 0 || u.kind === "object" || u.kind === "array"))) return null;
+			let f = h(r), p = f && (f.colon || l(e[f.valueAt]));
+			if (!(f && p && (u.kind !== "string" || f.kind !== "quoted") && (d > 0 || u.kind === "object" || u.kind === "array"))) return null;
 			s("insert-comma", r, ","), i += ",";
 		}
 		return null;
 	}
-	function g() {
+	function y() {
 		if (i += "[", r += 1, c(), e[r] === "]") return i += "]", r += 1, { kind: "array" };
 		for (; r < e.length;) {
-			let t = m();
+			let t = _();
 			if (!t) return null;
 			if (c(), e[r] === "]") return i += "]", r += 1, { kind: "array" };
 			if (e[r] === ",") {
@@ -4048,7 +4061,7 @@ function yi(e, { trailingCommasOnly: t = !1, requireOperations: n = !0 } = {}) {
 		return null;
 	}
 	try {
-		if (c(), !m() || (c(), r !== e.length || n && !a.length || o)) return null;
+		if (c(), !_() || (c(), r !== e.length || n && !a.length || o)) return null;
 		let t;
 		try {
 			t = JSON.parse(i);
